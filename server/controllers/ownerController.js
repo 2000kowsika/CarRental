@@ -1,6 +1,8 @@
 import User from "../models/User.js";
 import imagekit from "../configs/imageKit.js";
 import Car from "../models/Car.js";
+import Booking from "../models/Booking.js";
+import fs from "fs";
 
 export const changeRoleToOwner = async (req, res) => {
     try {
@@ -22,17 +24,17 @@ export const addCar = async (req, res) => {
         let car = JSON.parse(req.body.carData);
         const imageFile = req.file;
 
-        // Upload Image to ImageKit    
-        const response = await imagekit.files.upload({
-            file: imageFile.buffer,
+        // Upload Image to ImageKit  
+        const fileBuffer = fs.readFileSync(imageFile.Path)
+        const response = await imagekit.upload({
+            file: fileBuffer,
             fileName: imageFile.originalname,
             folder: '/cars'
         })
 
-        // optimization through imagekit URL transformation (v7 API)
-        const optimizedImageURL = imagekit.helper.buildSrc({
-            urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT,
-            src: response.filePath,
+        // optimization through imagekit URL transformation 
+        var optimizedImageURL = imagekit.url({
+            path: response.filePath,
             transformation: [
                 { width: '1280' }, // width resizing
                 { quality: '80' }, // compression
@@ -40,7 +42,7 @@ export const addCar = async (req, res) => {
             ]
         });
 
-        const image = optimizedImageURL;
+        const image = optimizedImageUrl;
         await Car.create({ ...car, owner: _id, image })
 
         res.json({ success: true, message: "Car Added" })
@@ -120,6 +122,62 @@ export const getDashboardData = async (req, res) => {
         }
 
         const cars = await Car.find({ owner: _id })
+        const bookings = await Booking.find({ owner: _id }).populate('car').sort({ createdAt: -1 });
+
+        const pendingBookings = await Booking.find({ owner: _id, status: "pending" })
+        const completedBookings = await Booking.find({ owner: _id, status: "confirmed" })
+
+        // Calculated monthlyRevenue from bookings where status is confirmed
+        const monthlyRevenue = bookings.slice().filter(booking => booking.status === 'confirmed').reduce((acc, booking) => acc + booking.price, 0)
+
+        const dashboardData = {
+            totalCars: cars.lenght,
+            totalBookings: bookings.length,
+            pendingBookings: pendingBookings.length,
+            completedBookings: completedBookings.length,
+            recentBookings: booking.slice(0, 3),
+            monthlyRevenue
+        }
+
+        res.json({ success: true, dashboardData });
+
+
+    } catch (error) {
+        console.log(error.message);
+        res.json({ success: false, message: error.message })
+    }
+}
+
+// API to update user image
+
+export const updateUserImage = async (req, res) => {
+    try {
+        const { _id } = req.user;
+
+        const imageFile = req.file;
+
+        // Upload Image to ImageKit  
+        const fileBuffer = fs.readFileSync(imageFile.Path)
+        const response = await imagekit.upload({
+            file: fileBuffer,
+            fileName: imageFile.originalname,
+            folder: '/users'
+        })
+
+        // optimization through imagekit URL transformation 
+        var optimizedImageURL = imagekit.url({
+            path: response.filePath,
+            transformation: [
+                { width: '400' }, // width resizing
+                { quality: 'auto' }, // compression
+                { format: 'webp' } // convert to modern format
+            ]
+        });
+
+        const image = optimizedImageUrl;
+        await User.findByIdAndUpdate(_id, { image })
+        res.json({ success: true, message: "Image Updated" })
+
     } catch (error) {
         console.log(error.message);
         res.json({ success: false, message: error.message })
