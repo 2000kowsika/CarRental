@@ -31,6 +31,8 @@ pnpm-debug.log*
 *.njsproj
 *.sln
 *.sw?
+.postman/
+postman/
 
 # System files
 .DS_Store
