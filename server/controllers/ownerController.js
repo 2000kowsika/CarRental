@@ -25,7 +25,7 @@ export const addCar = async (req, res) => {
         const imageFile = req.file;
 
         // Upload Image to ImageKit  
-        const fileBuffer = fs.readFileSync(imageFile.Path)
+        const fileBuffer = fs.readFileSync(imageFile.path)
         const response = await imagekit.upload({
             file: fileBuffer,
             fileName: imageFile.originalname,
@@ -42,7 +42,7 @@ export const addCar = async (req, res) => {
             ]
         });
 
-        const image = optimizedImageUrl;
+        const image = optimizedImageURL;
         await Car.create({ ...car, owner: _id, image })
 
         res.json({ success: true, message: "Car Added" })
@@ -157,7 +157,7 @@ export const updateUserImage = async (req, res) => {
         const imageFile = req.file;
 
         // Upload Image to ImageKit  
-        const fileBuffer = fs.readFileSync(imageFile.Path)
+        const fileBuffer = fs.readFileSync(imageFile.path)
         const response = await imagekit.upload({
             file: fileBuffer,
             fileName: imageFile.originalname,
@@ -174,7 +174,7 @@ export const updateUserImage = async (req, res) => {
             ]
         });
 
-        const image = optimizedImageUrl;
+        const image = optimizedImageURL;
         await User.findByIdAndUpdate(_id, { image })
         res.json({ success: true, message: "Image Updated" })
 

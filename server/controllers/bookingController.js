@@ -8,7 +8,7 @@ const checkAvailability = async (car, pickupDate, returnDate) => {
         pickupDate: { $lte: returnDate },
         returnDate: { $gte: pickupDate },
     })
-    returnbookings.length === 0;
+    return bookings.length === 0;
 }
 
 // API to check Availability of Cars for the given Date and location
@@ -28,7 +28,7 @@ export const checkAvailabilityOfCar = async (req, res) => {
         let availableCars = await Promise.all(availableCarsPromises);
         availableCars = availableCars.filter(car => car.isAvailable === true)
 
-        res, json({ success: true, availableCars })
+        res.json({ success: true, availableCars })
 
     } catch (error) {
         console.log(error.message);
@@ -53,11 +53,11 @@ export const createBooking = async (req, res) => {
         const picked = new Date(pickupDate);
         const returned = new Date(returnDate);
         const noOfDays = Math.ceil((returned - picked) / (1000 * 60 * 60 * 24))
-        const price = carData.pricePerDat * noOfDays;
+        const price = carData.pricePerDay * noOfDays;
 
         await Booking.create({ car, owner: carData.owner, user: _id, pickupDate, returnDate, price })
 
-        res, json({ success: true, message: "Booking Created" })
+        res.json({ success: true, message: "Booking Created" })
 
     } catch (error) {
         console.log(error.message);
@@ -69,7 +69,7 @@ export const createBooking = async (req, res) => {
 export const getUserBookings = async (req, res) => {
     try {
         const { _id } = req.user;
-        const bookings = await Booking.find({ user: _id }).populate("car").sort({ createeAt: -1 })
+        const bookings = await Booking.find({ user: _id }).populate("car").sort({ createdAt: -1 })
         res.json({ success: true, bookings })
     } catch (error) {
         console.log(error.message)

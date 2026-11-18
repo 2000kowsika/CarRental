@@ -1,17 +1,33 @@
-import React from 'react'
-import { assets, cityList } from "../assets/assets"
-import { useNavigate } from 'react-router-dom'
+import React, { useState } from 'react'
+import { toast } from 'react-hot-toast'
+import { useAppContext } from '../context/AppContext'
 
+const Login = () => {
 
-const Login = ({ setShowLogin }) => {
+    const { setShowLogin, axios, setToken, navigate } = useAppContext()
 
-    const [state, setState] = React.useState("login");
-    const [name, setName] = React.useState("");
-    const [email, setEmail] = React.useState("");
-    const [password, setPassword] = React.useState("");
+    const [state, setState] = useState("login");
+    const [name, setName] = useState("");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
 
     const onSubmitHandler = async (event) => {
         event.preventDefault();
+        try {
+            const { data } = await axios.post(`/api/user/${state}`, { name, email, password })
+
+            if (data.success) {
+                navigate('/')
+                setToken(data.token)
+                localStorage.setItem('token', data.token)
+                setShowLogin(false)
+                toast.success(state === "login" ? "Logged in successfully" : "Account created successfully")
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.message || error.message)
+        }
     }
 
     return (

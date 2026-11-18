@@ -6,7 +6,8 @@ const bookingRouter = express.Router();
 
 bookingRouter.post('/check-availability', checkAvailabilityOfCar)
 bookingRouter.post('/create', protect, createBooking)
-bookingRouter.post('/user', protect, getOwnerBookings)
+bookingRouter.get('/user', protect, getUserBookings)
+bookingRouter.get('/owner', protect, getOwnerBookings)
 bookingRouter.post('/change-status', protect, changeBookingStatus)
 
 export default bookingRouter; 
