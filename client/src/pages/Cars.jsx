@@ -26,13 +26,13 @@ const Cars = () => {
         const sourceCars = cars && cars.length > 0 ? cars : dummyCarData.slice(0, 2)
         if (input === '') {
             setFilteredCars(sourceCars)
-            return
+            return null
         }
-        const filtered = sourceCars.filter(car => {
-            return car.brand?.toLowerCase().includes(input.toLowerCase()) ||
-                car.model?.toLowerCase().includes(input.toLowerCase()) ||
-                car.category?.toLowerCase().includes(input.toLowerCase()) ||
-                car.transmission?.toLowerCase().includes(input.toLowerCase())
+        const filtered = sourceCars.slice().filter((car) => {
+            return car.brand?.toLowerCase().includes(input.toLowerCase())
+                || car.model?.toLowerCase().includes(input.toLowerCase())
+                || car.category?.toLowerCase().includes(input.toLowerCase())
+                || car.transmission?.toLowerCase().includes(input.toLowerCase())
         })
         setFilteredCars(filtered)
     }

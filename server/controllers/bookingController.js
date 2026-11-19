@@ -1,12 +1,17 @@
 import Booking from "../models/Booking.js"
 import Car from "../models/Car.js";
+import User from "../models/User.js";
 
 // Function to Check Availability of Car for given Date
 const checkAvailability = async (car, pickupDate, returnDate) => {
+    const pickup = new Date(pickupDate);
+    const returnD = new Date(returnDate);
+
     const bookings = await Booking.find({
         car,
-        pickupDate: { $lte: returnDate },
-        returnDate: { $gte: pickupDate },
+        status: { $ne: "cancelled" },
+        pickupDate: { $lte: returnD },
+        returnDate: { $gte: pickup },
     })
     return bookings.length === 0;
 }
@@ -47,6 +52,9 @@ export const createBooking = async (req, res) => {
         }
 
         const carData = await Car.findById(car)
+        if (!carData) {
+            return res.json({ success: false, message: "Car not found" })
+        }
 
         // Calculate price based on pickupDate and returnDate
 
@@ -83,7 +91,10 @@ export const getOwnerBookings = async (req, res) => {
         if (req.user.role !== 'owner') {
             return res.json({ success: false, message: "Unauthorized" })
         }
-        const bookings = await Booking.find({ owner: req.user._id }).populate('car user').select("-user.password").sort({ createdAt: -1 })
+        const bookings = await Booking.find({ owner: req.user._id })
+            .populate('car')
+            .populate({ path: 'user', select: '-password' })
+            .sort({ createdAt: -1 })
         res.json({ success: true, bookings })
     } catch (error) {
         console.log(error.message)
