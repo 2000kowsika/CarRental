@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { assets, cityList } from '../assets/assets'
 import { useAppContext } from '../context/AppContext'
+import { motion } from 'motion/react'
 
 const Hero = () => {
     const [pickupLocation, setPickupLocation] = useState('')
@@ -14,10 +15,23 @@ const Hero = () => {
 
 
     return (
-        <div className='min-h-screen flex flex-col items-center justify-center gap-10 bg-light text-center px-4 py-12'>
-            <h1 className='text-4xl md:text-5xl font-semibold'>Luxury cars on Rent</h1>
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.8 }}
+            className='h-screen flex flex-col items-center justify-center gap-14 bg-light text-center'>
 
-            <form onSubmit={handleSearch} className='flex flex-col md:flex-row items-stretch md:items-center justify-between p-6 rounded-2xl md:rounded-full w-full max-w-5xl bg-white shadow-[0px_8px_20px_rgba(0,0,0,0.08)] gap-6'>
+            <motion.h1 initial={{ y: 50, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+                className='text-4xl md:text-5xl font-semibold'>Luxury cars on Rent</motion.h1>
+
+            <motion.form
+                initial={{ y: 0.95, opacity: 0, y: 50 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.4 }}
+
+                onSubmit={handleSearch} className='flex flex-col md:flex-row items-stretch md:items-center justify-between p-6 rounded-2xl md:rounded-full w-full max-w-5xl bg-white shadow-[0px_8px_20px_rgba(0,0,0,0.08)] gap-6'>
                 <div className='flex flex-col md:flex-row items-start md:items-center gap-10 min-md:ml-8'>
                     {/* Location Selection */}
                     <div className='flex flex-col items-start gap-2'>
@@ -58,24 +72,27 @@ const Hero = () => {
                             type="date"
                             id="return-date"
                             min={pickupDate || new Date().toISOString().split('T')[0]}
-                            className='text-sm text-gray-700 outline-none bg-transparent font-medium cursor-pointer w-full'
-                            required
-                        />
+                            className='text-sm text-gray-500' required />
                     </div>
                 </div>
 
                 {/* Search Button */}
-                <button
-                    type='submit'
+                <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     className='flex items-center justify-center gap-2 px-8 py-3 bg-primary hover:bg-primary-dull text-white rounded-full transition-all cursor-pointer shadow-md self-center md:self-auto'
                 >
-                    <img src={assets.search_icon} alt="search" className='w-4 h-4 brightness-200' />
-                    <span>Search</span>
-                </button>
-            </form>
+                    <img src={assets.search_icon} alt="search" className=' brightness-300' />
+                    Search
+                </motion.button>
+            </motion.form>
 
-            <img src={assets.main_car} alt="car" className='max-h-74 object-contain mt-4' />
-        </div>
+            <motion.img
+                initial={{ y: 100, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.8, delay: 0.6 }}
+                src={assets.main_car} alt="car" className='max-h-74' />
+        </motion.div>
     )
 }
 

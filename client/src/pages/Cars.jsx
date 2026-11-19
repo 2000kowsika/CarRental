@@ -23,7 +23,7 @@ const Cars = () => {
     const [filteredCars, setFilteredCars] = useState([])
 
     const applyFilter = () => {
-        const sourceCars = cars && cars.length > 0 ? cars : dummyCarData.slice(0, 2)
+        const sourceCars = cars && cars.length > 0 ? cars : dummyCarData
         if (input === '') {
             setFilteredCars(sourceCars)
             return null
