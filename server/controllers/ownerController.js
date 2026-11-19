@@ -3,6 +3,7 @@ import imagekit from "../configs/imageKit.js";
 import Car from "../models/Car.js";
 import Booking from "../models/Booking.js";
 import fs from "fs";
+import { toFile } from "@imagekit/nodejs";
 
 export const changeRoleToOwner = async (req, res) => {
     try {
@@ -24,10 +25,14 @@ export const addCar = async (req, res) => {
         let car = JSON.parse(req.body.carData);
         const imageFile = req.file;
 
+        if (!imageFile) {
+            return res.json({ success: false, message: "Please upload an image" })
+        }
+
         // Upload Image to ImageKit  
-        const fileBuffer = fs.readFileSync(imageFile.path)
-        const response = await imagekit.upload({
-            file: fileBuffer,
+        const file = await toFile(imageFile.buffer, imageFile.originalname);
+        const response = await imagekit.files.upload({
+            file,
             fileName: imageFile.originalname,
             folder: '/cars'
         })
@@ -131,11 +136,11 @@ export const getDashboardData = async (req, res) => {
         const monthlyRevenue = bookings.slice().filter(booking => booking.status === 'confirmed').reduce((acc, booking) => acc + booking.price, 0)
 
         const dashboardData = {
-            totalCars: cars.lenght,
+            totalCars: cars.length,
             totalBookings: bookings.length,
             pendingBookings: pendingBookings.length,
             completedBookings: completedBookings.length,
-            recentBookings: booking.slice(0, 3),
+            recentBookings: bookings.slice(0, 3),
             monthlyRevenue
         }
 
@@ -156,10 +161,14 @@ export const updateUserImage = async (req, res) => {
 
         const imageFile = req.file;
 
+        if (!imageFile) {
+            return res.json({ success: false, message: "Please select an image to upload" })
+        }
+
         // Upload Image to ImageKit  
-        const fileBuffer = fs.readFileSync(imageFile.path)
-        const response = await imagekit.upload({
-            file: fileBuffer,
+        const file = await toFile(imageFile.buffer, imageFile.originalname);
+        const response = await imagekit.files.upload({
+            file,
             fileName: imageFile.originalname,
             folder: '/users'
         })

@@ -8,6 +8,13 @@ const Cars = () => {
 
     const [input, setInput] = useState('')
 
+    const filteredCars = dummyCarData.filter(car => {
+        return car.brand?.toLowerCase().includes(input.toLowerCase()) ||
+            car.model?.toLowerCase().includes(input.toLowerCase()) ||
+            car.category?.toLowerCase().includes(input.toLowerCase()) ||
+            car.transmission?.toLowerCase().includes(input.toLowerCase())
+    })
+
     return (
         <div>
 
@@ -25,11 +32,11 @@ const Cars = () => {
             </div>
 
             <div className='px-6 md:px-16 lg:px-24 xl:px-32 mt-10'>
-                <p className='text-gray-500 xl:px-20 max-w-7xl mx-auto'>Showing {dummyCarData.length} Cars</p>
+                <p className='text-gray-500 xl:px-20 max-w-7xl mx-auto'>Showing {filteredCars.length} Cars</p>
 
                 <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mt-4 xl:px-20 max-w-7xl mx-auto'>
-                    {dummyCarData.map((car, index) => (
-                        <div key={index}>
+                    {filteredCars.map((car, index) => (
+                        <div key={car._id || index}>
                             <CarCard car={car} />
                         </div>
                     ))}

@@ -7,4 +7,13 @@ const imagekit = new ImageKit({
     urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT
 });
 
+// Helper for building optimized ImageKit URLs
+imagekit.url = ({ path, src, transformation }) => {
+    const fullSrc = src || `${process.env.IMAGEKIT_URL_ENDPOINT}${path.startsWith('/') ? '' : '/'}${path}`;
+    return imagekit.helper.buildSrc({
+        src: fullSrc,
+        transformation
+    });
+};
+
 export default imagekit;
