@@ -1,19 +1,71 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Title from '../components/Title'
 import { assets, dummyCarData } from '../assets/assets'
 import CarCard from '../components/CarCard'
+import { useSearchParams } from 'react-router-dom'
+import { useAppContext } from '../context/AppContext'
+import { toast } from 'react-hot-toast'
 
 
 const Cars = () => {
 
+    //getting search params from url
+    const [searchParams] = useSearchParams()
+    const pickupLocation = searchParams.get('pickupLocation')
+    const pickupDate = searchParams.get('pickupDate')
+    const returnDate = searchParams.get('returnDate')
+
+    const { cars, axios } = useAppContext()
+
     const [input, setInput] = useState('')
 
-    const filteredCars = dummyCarData.filter(car => {
-        return car.brand?.toLowerCase().includes(input.toLowerCase()) ||
-            car.model?.toLowerCase().includes(input.toLowerCase()) ||
-            car.category?.toLowerCase().includes(input.toLowerCase()) ||
-            car.transmission?.toLowerCase().includes(input.toLowerCase())
-    })
+    const isSearchData = pickupLocation && pickupDate && returnDate
+    const [filteredCars, setFilteredCars] = useState([])
+
+    const applyFilter = () => {
+        const sourceCars = cars && cars.length > 0 ? cars : dummyCarData.slice(0, 2)
+        if (input === '') {
+            setFilteredCars(sourceCars)
+            return
+        }
+        const filtered = sourceCars.filter(car => {
+            return car.brand?.toLowerCase().includes(input.toLowerCase()) ||
+                car.model?.toLowerCase().includes(input.toLowerCase()) ||
+                car.category?.toLowerCase().includes(input.toLowerCase()) ||
+                car.transmission?.toLowerCase().includes(input.toLowerCase())
+        })
+        setFilteredCars(filtered)
+    }
+
+    const searchCarAvailability = async () => {
+        try {
+            const { data } = await axios.post('/api/bookings/check-availability', { location: pickupLocation, pickupDate, returnDate })
+            if (data.success) {
+                setFilteredCars(data.availableCars)
+                if (data.availableCars.length === 0) {
+                    toast('No cars available')
+                }
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            toast.error(error.message)
+        }
+    }
+
+    useEffect(() => {
+        if (isSearchData) {
+            searchCarAvailability()
+        } else {
+            applyFilter()
+        }
+    }, [isSearchData, cars])
+
+    useEffect(() => {
+        if (!isSearchData) {
+            applyFilter()
+        }
+    }, [input])
 
     return (
         <div>

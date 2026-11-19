@@ -1,19 +1,26 @@
 import React, { useState } from 'react'
 import { assets, cityList } from '../assets/assets'
+import { useAppContext } from '../context/AppContext'
 
 const Hero = () => {
     const [pickupLocation, setPickupLocation] = useState('')
-    const [pickupDate, setPickupDate] = useState('')
-    const [returnDate, setReturnDate] = useState('')
+    const { pickupDate, setPickupDate, returnDate, setReturnDate, navigate } = useAppContext()
+
+    const handleSearch = (e) => {
+        e.preventDefault()
+        navigate('/cars?pickupLocation=' + pickupLocation + '&pickupDate=' + pickupDate + '&returnDate=' + returnDate)
+    }
+
+
 
     return (
         <div className='min-h-screen flex flex-col items-center justify-center gap-10 bg-light text-center px-4 py-12'>
             <h1 className='text-4xl md:text-5xl font-semibold'>Luxury cars on Rent</h1>
 
-            <form className='flex flex-col md:flex-row items-stretch md:items-center justify-between p-6 rounded-2xl md:rounded-full w-full max-w-5xl bg-white shadow-[0px_8px_20px_rgba(0,0,0,0.08)] gap-6'>
-                <div className='flex flex-col md:flex-row items-start md:items-center gap-6 md:ml-4 w-full justify-between'>
+            <form onSubmit={handleSearch} className='flex flex-col md:flex-row items-stretch md:items-center justify-between p-6 rounded-2xl md:rounded-full w-full max-w-5xl bg-white shadow-[0px_8px_20px_rgba(0,0,0,0.08)] gap-6'>
+                <div className='flex flex-col md:flex-row items-start md:items-center gap-10 min-md:ml-8'>
                     {/* Location Selection */}
-                    <div className='flex flex-col items-start gap-1 text-left w-full md:w-auto'>
+                    <div className='flex flex-col items-start gap-2'>
                         <label className='text-xs font-semibold text-gray-500 uppercase tracking-wider'>Location</label>
                         <select
                             required
@@ -30,17 +37,12 @@ const Hero = () => {
                             {pickupLocation ? pickupLocation : 'Please select location'}
                         </p>
                     </div>
-
                     <div className='hidden md:block w-px h-10 bg-gray-200'></div>
 
                     {/* Pick-up Date */}
-                    <div className='flex flex-col items-start gap-1 text-left w-full md:w-auto'>
+                    <div className='flex flex-col items-start gap-2'>
                         <label htmlFor='pickup-date' className='text-xs font-semibold text-gray-500 uppercase tracking-wider'>Pick-up Date</label>
-                        <input
-                            type="date"
-                            id="pickup-date"
-                            value={pickupDate}
-                            onChange={(e) => setPickupDate(e.target.value)}
+                        <input value={pickupDate} onChange={e => setPickupDate(e.target.value)} type="date" id="pickup-date"
                             min={new Date().toISOString().split('T')[0]}
                             className='text-sm text-gray-700 outline-none bg-transparent font-medium cursor-pointer w-full'
                             required
@@ -50,13 +52,11 @@ const Hero = () => {
                     <div className='hidden md:block w-px h-10 bg-gray-200'></div>
 
                     {/* Return Date */}
-                    <div className='flex flex-col items-start gap-1 text-left w-full md:w-auto'>
+                    <div className='flex flex-col items-start gap-2 '>
                         <label htmlFor='return-date' className='text-xs font-semibold text-gray-500 uppercase tracking-wider'>Return Date</label>
-                        <input
+                        <input value={returnDate} onChange={e => setReturnDate(e.target.value)}
                             type="date"
                             id="return-date"
-                            value={returnDate}
-                            onChange={(e) => setReturnDate(e.target.value)}
                             min={pickupDate || new Date().toISOString().split('T')[0]}
                             className='text-sm text-gray-700 outline-none bg-transparent font-medium cursor-pointer w-full'
                             required
