@@ -9,7 +9,24 @@ import { useAppContext } from '../context/AppContext'
 const FeaturedSection = () => {
 
     const navigate = useNavigate()
-    const { cars } = useAppContext()
+    const { cars, searchTerm } = useAppContext()
+
+    const searchFilteredCars = searchTerm.trim()
+        ? cars.filter((car) => {
+            const query = searchTerm.toLowerCase()
+            return (
+                car.brand?.toLowerCase().includes(query) ||
+                car.model?.toLowerCase().includes(query) ||
+                car.category?.toLowerCase().includes(query) ||
+                car.transmission?.toLowerCase().includes(query) ||
+                car.fuel_type?.toLowerCase().includes(query) ||
+                car.location?.toLowerCase().includes(query) ||
+                `${car.brand} ${car.model}`.toLowerCase().includes(query)
+            )
+        })
+        : null
+
+    const displayedCars = searchFilteredCars ? searchFilteredCars : cars.slice(0, 2)
 
     return (
         <motion.div
@@ -31,17 +48,24 @@ const FeaturedSection = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5, duration: 1 }}
 
-                className='grid grid-cols-1 md:grid-cols-2 gap-8 mt-18 max-w-4xl w-full'>
+                className={`grid gap-8 mt-18 max-w-4xl w-full ${displayedCars.length === 1 ? 'grid-cols-1 max-w-md' : 'grid-cols-1 md:grid-cols-2'}`}>
                 {
-                    cars.slice(0, 2).map((car) => (
-                        <motion.div key={car._id}
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            whileInView={{ opacity: 1, scale: 1 }}
-                            transition={{ duration: 0.4, ease: "easeOut" }}
-                        >
-                            <CarCard car={car} />
-                        </motion.div>
-                    ))
+                    displayedCars.length > 0 ? (
+                        displayedCars.map((car) => (
+                            <motion.div key={car._id}
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                whileInView={{ opacity: 1, scale: 1 }}
+                                transition={{ duration: 0.4, ease: "easeOut" }}
+                            >
+                                <CarCard car={car} />
+                            </motion.div>
+                        ))
+                    ) : (
+                        <div className='col-span-full text-center py-12 text-gray-500'>
+                            <p className='text-lg font-medium'>No cars found</p>
+                            <p className='text-sm mt-1'>Try searching for a different car name, brand, or model.</p>
+                        </div>
+                    )
                 }
             </motion.div>
 

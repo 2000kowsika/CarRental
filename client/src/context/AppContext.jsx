@@ -20,6 +20,7 @@ export const AppProvider = ({ children }) => {
     const [returnDate, setReturnDate] = useState('')
 
     const [cars, setCars] = useState([])
+    const [searchTerm, setSearchTerm] = useState('')
 
     // Function to check if user is logged in
     const fetchUser = async () => {
@@ -78,7 +79,8 @@ export const AppProvider = ({ children }) => {
         token, setToken, isOwner, setIsOwner, fetchUser,
         showLogin, setShowLogin, logout, fetchCars, cars,
         setCars,
-        pickupDate, setPickupDate, returnDate, setReturnDate
+        pickupDate, setPickupDate, returnDate, setReturnDate,
+        searchTerm, setSearchTerm
     }
 
     return (

@@ -7,11 +7,18 @@ import { motion } from 'motion/react'
 
 const Navbar = () => {
 
-    const { setShowLogin, user, logout, isOwner, axios, setIsOwner } = useAppContext()
+    const { setShowLogin, user, logout, isOwner, axios, setIsOwner, searchTerm, setSearchTerm } = useAppContext()
 
     const location = useLocation()
     const [open, setOpen] = useState(false)
     const navigate = useNavigate()
+
+    const handleSearchSubmit = (e) => {
+        e.preventDefault()
+        if (location.pathname !== '/cars') {
+            navigate('/cars')
+        }
+    }
 
     const changeRole = async () => {
         try {
@@ -47,10 +54,29 @@ const Navbar = () => {
                         {link.name}
                     </Link>
                 ))}
-                <div className='hidden lg:flex items-center text-sm gap-2 border border-borderColor px-3 rounded-full max-w-56'>
-                    <input type="text" className="py-1.5 w-full bg-transparent outline-none placeholder-gray-500" placeholder="Search products" />
-                    <img src={assets.search_icon} alt="search" />
-                </div>
+                <form onSubmit={handleSearchSubmit} className='hidden lg:flex items-center text-sm gap-2 border border-borderColor px-3 rounded-full max-w-56'>
+                    <input
+                        type="text"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="py-1.5 w-full bg-transparent outline-none placeholder-gray-500"
+                        placeholder="Search products"
+                    />
+                    {searchTerm && (
+                        <button
+                            type="button"
+                            onClick={() => setSearchTerm('')}
+                            className="cursor-pointer text-gray-400 hover:text-gray-600 focus:outline-none flex items-center justify-center text-xs"
+                            title="Clear search"
+                            aria-label="Clear search"
+                        >
+                            ✕
+                        </button>
+                    )}
+                    <button type="submit" className="cursor-pointer">
+                        <img src={assets.search_icon} alt="search" />
+                    </button>
+                </form>
 
                 <div className='flex max-sm:flex-col items-start sm:items-center gap-6'>
                     <button onClick={() => isOwner ? navigate('/owner') : changeRole()} className="cursor-pointer">{isOwner ? 'Dashboard' : 'List cars'}</button>

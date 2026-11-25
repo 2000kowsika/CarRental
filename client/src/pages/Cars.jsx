@@ -15,24 +15,34 @@ const Cars = () => {
     const pickupDate = searchParams.get('pickupDate')
     const returnDate = searchParams.get('returnDate')
 
-    const { cars, axios } = useAppContext()
+    const { cars, axios, searchTerm, setSearchTerm } = useAppContext()
 
-    const [input, setInput] = useState('')
+    const [input, setInput] = useState(searchTerm || '')
+
+    useEffect(() => {
+        if (searchTerm !== input) {
+            setInput(searchTerm)
+        }
+    }, [searchTerm])
 
     const isSearchData = pickupLocation && pickupDate && returnDate
     const [filteredCars, setFilteredCars] = useState([])
 
     const applyFilter = () => {
         const sourceCars = cars && cars.length > 0 ? cars : dummyCarData
-        if (input === '') {
+        const query = (input || '').trim().toLowerCase()
+        if (query === '') {
             setFilteredCars(sourceCars)
             return null
         }
         const filtered = sourceCars.slice().filter((car) => {
-            return car.brand?.toLowerCase().includes(input.toLowerCase())
-                || car.model?.toLowerCase().includes(input.toLowerCase())
-                || car.category?.toLowerCase().includes(input.toLowerCase())
-                || car.transmission?.toLowerCase().includes(input.toLowerCase())
+            return car.brand?.toLowerCase().includes(query)
+                || car.model?.toLowerCase().includes(query)
+                || car.category?.toLowerCase().includes(query)
+                || car.transmission?.toLowerCase().includes(query)
+                || car.fuel_type?.toLowerCase().includes(query)
+                || car.location?.toLowerCase().includes(query)
+                || `${car.brand} ${car.model}`.toLowerCase().includes(query)
         })
         setFilteredCars(filtered)
     }
@@ -86,7 +96,10 @@ const Cars = () => {
                     className='flex items-center bg-white px-4 mt-6 max-w-140 w-full h-12 rounded-full shadow'>
                     <img src={assets.search_icon} alt="" className='w-4.5 h-4.5 mr-2' />
 
-                    <input onChange={(e) => setInput(e.target.value)} value={input} type="text" placeholder='Search by make, model, or features' className='w-full h-full outline-none text-gray-500' />
+                    <input onChange={(e) => {
+                        setInput(e.target.value)
+                        setSearchTerm(e.target.value)
+                    }} value={input} type="text" placeholder='Search by make, model, or features' className='w-full h-full outline-none text-gray-500' />
 
                     <img src={assets.filter_icon} alt="" className='w-4.5 h-4.5 ml-2' />
 
@@ -101,17 +114,24 @@ const Cars = () => {
                 className='px-6 md:px-16 lg:px-24 xl:px-32 mt-10'>
                 <p className='text-gray-500 xl:px-20 max-w-7xl mx-auto'>Showing {filteredCars.length} Cars</p>
 
-                <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mt-4 xl:px-20 max-w-7xl mx-auto'>
-                    {filteredCars.map((car, index) => (
-                        <motion.div key={car._id || index}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.1 * index, duration: 0.4 }}
-                        >
-                            <CarCard car={car} />
-                        </motion.div>
-                    ))}
-                </div>
+                {filteredCars.length > 0 ? (
+                    <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mt-4 xl:px-20 max-w-7xl mx-auto'>
+                        {filteredCars.map((car, index) => (
+                            <motion.div key={car._id || index}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.1 * index, duration: 0.4 }}
+                            >
+                                <CarCard car={car} />
+                            </motion.div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className='text-center py-16 text-gray-500'>
+                        <p className='text-xl font-medium'>No cars found</p>
+                        <p className='text-sm mt-1'>No cars match your search keyword. Try a different make or model.</p>
+                    </div>
+                )}
             </motion.div>
         </div>
     )
