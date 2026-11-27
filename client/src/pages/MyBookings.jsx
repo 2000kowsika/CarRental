@@ -5,12 +5,15 @@ import { assets } from '../assets/assets'
 import { useAppContext } from '../context/AppContext'
 import { toast } from 'react-hot-toast'
 import { motion } from 'motion/react'
+import { generateBookingInvoice } from '../utils/generateInvoice'
 
 const MyBookings = () => {
 
     const { axios, user, currency } = useAppContext()
     const [bookings, setBookings] = useState([])
     const [isLoading, setIsLoading] = useState(true)
+    const [cancellingId, setCancellingId] = useState(null)
+    const [payingId, setPayingId] = useState(null)
 
     const fetchMyBookings = async () => {
         try {
@@ -24,6 +27,82 @@ const MyBookings = () => {
             toast.error(error.message)
         } finally {
             setIsLoading(false)
+        }
+    }
+
+    const handlePayNow = async (bookingId) => {
+        setPayingId(bookingId)
+        try {
+            const { data } = await axios.post('/api/payment/initiate', { bookingId })
+            if (!data.success) {
+                toast.error(data.message)
+                setPayingId(null)
+                return
+            }
+
+            if (!window.payhere) {
+                toast.error("PayHere gateway is loading. Please check your internet connection.")
+                setPayingId(null)
+                return
+            }
+
+            window.payhere.onCompleted = function onCompleted(orderId) {
+                toast.success("Payment completed successfully!")
+                // Verify with backend
+                axios.post('/api/payment/verify', { bookingId: orderId })
+                    .finally(() => {
+                        fetchMyBookings()
+                        setPayingId(null)
+                    })
+            }
+
+            window.payhere.onDismissed = function onDismissed() {
+                toast("Payment window closed.")
+                setPayingId(null)
+            }
+
+            window.payhere.onError = function onError(error) {
+                toast.error("Payment error: " + (error || "Transaction failed"))
+                setPayingId(null)
+            }
+
+            // Launch PayHere secure popup modal
+            window.payhere.startPayment(data.paymentData)
+
+        } catch (error) {
+            toast.error(error.response?.data?.message || error.message)
+            setPayingId(null)
+        }
+    }
+
+    const handleCancelBooking = async (bookingId) => {
+        const confirmed = window.confirm(
+            "Are you sure you want to cancel this booking? This will restore vehicle availability for these dates."
+        )
+        if (!confirmed) return
+
+        setCancellingId(bookingId)
+        try {
+            const { data } = await axios.post('/api/bookings/cancel', { bookingId })
+            if (data.success) {
+                toast.success(data.message)
+                fetchMyBookings()
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.message || error.message)
+        } finally {
+            setCancellingId(null)
+        }
+    }
+
+    const handleDownloadInvoice = (booking) => {
+        try {
+            generateBookingInvoice(booking, user, currency)
+            toast.success("Invoice downloaded successfully")
+        } catch (error) {
+            toast.error("Failed to generate invoice: " + error.message)
         }
     }
 
@@ -100,12 +179,52 @@ const MyBookings = () => {
                                     </div>
                                 </div>
                             </div>
-                            {/* Price */}
-                            <div className='md:col-span-1 flex flex-col justify-between gap-6'>
+                            {/* Price & Actions */}
+                            <div className='md:col-span-1 flex flex-col justify-between items-end gap-4'>
                                 <div className='text-sm text-gray-500 text-right'>
                                     <p>Total Price</p>
                                     <h1 className='text-2xl font-semibold text-primary'>{currency}{booking.price}</h1>
-                                    <p>Booked on {booking.createdAt.split('T')[0]}</p>
+                                    <p className='text-xs text-gray-400'>Booked on {booking.createdAt?.split('T')[0]}</p>
+                                    <p className={`text-xs mt-1 font-medium ${
+                                        booking.paymentStatus === 'paid' ? 'text-green-600' :
+                                        booking.paymentStatus === 'refund_pending' ? 'text-blue-600' :
+                                        booking.paymentStatus === 'refunded' ? 'text-purple-600' : 'text-amber-600'
+                                    }`}>
+                                        Payment: {booking.paymentStatus === 'refund_pending' ? 'REFUND PENDING' : (booking.paymentStatus || 'pending').toUpperCase()}
+                                    </p>
+                                </div>
+
+                                <div className='flex flex-wrap gap-2 justify-end w-full'>
+                                    {/* Pay Now Button (If Pending) */}
+                                    {booking.status !== 'cancelled' && booking.paymentStatus !== 'paid' && (
+                                        <button
+                                            disabled={payingId === booking._id}
+                                            onClick={() => handlePayNow(booking._id)}
+                                            className='px-3 py-1.5 text-xs font-semibold bg-primary hover:bg-primary-dull text-white rounded-md transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1 shadow-sm'
+                                        >
+                                            {payingId === booking._id ? 'Processing...' : '💳 Pay Now'}
+                                        </button>
+                                    )}
+
+                                    {/* Download Invoice Button */}
+                                    <button
+                                        onClick={() => handleDownloadInvoice(booking)}
+                                        className='px-3 py-1.5 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition-colors cursor-pointer flex items-center gap-1.5 border border-slate-300'
+                                        title='Download PDF Invoice'
+                                    >
+                                        <span>📄</span> Invoice
+                                    </button>
+
+                                    {/* Cancel Booking Button */}
+                                    {booking.status !== 'cancelled' && (
+                                        <button
+                                            disabled={cancellingId === booking._id}
+                                            onClick={() => handleCancelBooking(booking._id)}
+                                            className='px-3 py-1.5 text-xs font-medium bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-md transition-colors cursor-pointer disabled:opacity-50'
+                                        >
+                                            {cancellingId === booking._id ? 'Cancelling...' : 'Cancel Booking'}
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 

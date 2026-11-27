@@ -3,7 +3,7 @@ import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
 import crypto from "crypto"
 import Car from "../models/Car.js"
-import { sendResetPasswordEmail } from "../configs/email.js"
+import { sendResetPasswordEmail, sendWelcomeEmail } from "../configs/email.js"
 
 // Generate JWT Token
 const generateToken = (userId) => {
@@ -26,6 +26,10 @@ export const registerUser = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10)
         const user = await User.create({ name, email, password: hashedPassword })
         const token = generateToken(user._id.toString())
+
+        // Send Welcome Email asynchronously
+        sendWelcomeEmail(user).catch((err) => console.error("Welcome email error:", err.message));
+
         res.json({ success: true, token })
 
     } catch (error) {

@@ -11,6 +11,9 @@ import Dashboard from './pages/owner/Dashboard'
 import AddCar from './pages/owner/AddCar'
 import ManageCars from './pages/owner/ManageCars'
 import ManageBookings from './pages/owner/ManageBookings'
+import AdminKYCManager from './pages/owner/AdminKYCManager'
+import DriverLicenseKYC from './pages/DriverLicenseKYC'
+import Analytics from './pages/owner/Analytics'
 import Login from './components/Login'
 import ResetPassword from './pages/ResetPassword'
 import { Toaster } from 'react-hot-toast'
@@ -33,12 +36,15 @@ const App = () => {
         <Route path='/car-details/:id' element={<CarDetails />} />
         <Route path='/cars' element={<Cars />} />
         <Route path='/my-bookings' element={<MyBookings />} />
+        <Route path='/driver-license' element={<DriverLicenseKYC />} />
         <Route path='/reset-password/:token' element={<ResetPassword />} />
         <Route path='/owner' element={<Layout />}>
           <Route index element={<Dashboard />} />
+          <Route path='analytics' element={<Analytics />} />
           <Route path='add-car' element={<AddCar />} />
           <Route path='manage-cars' element={<ManageCars />} />
           <Route path='manage-bookings' element={<ManageBookings />} />
+          <Route path='verifications' element={<AdminKYCManager />} />
         </Route>
       </Routes>
 

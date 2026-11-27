@@ -92,13 +92,16 @@ export const menuLinks = [
     { name: "Home", path: "/" },
     { name: "Cars", path: "/cars" },
     { name: "My Bookings", path: "/my-bookings" },
+    { name: "Driver License", path: "/driver-license" },
 ]
 
 export const ownerMenuLinks = [
     { name: "Dashboard", path: "/owner", icon: dashboardIcon, coloredIcon: dashboardIconColored },
+    { name: "Analytics", path: "/owner/analytics", icon: dashboardIconColored, coloredIcon: dashboardIconColored },
     { name: "Add car", path: "/owner/add-car", icon: addIcon, coloredIcon: addIconColored },
     { name: "Manage Cars", path: "/owner/manage-cars", icon: carIcon, coloredIcon: carIconColored },
     { name: "Manage Bookings", path: "/owner/manage-bookings", icon: listIcon, coloredIcon: listIconColored },
+    { name: "Verifications", path: "/owner/verifications", icon: check_icon, coloredIcon: check_icon },
 ]
 
 export const dummyUserData = {

@@ -25,6 +25,12 @@ const CarCard = ({ car }) => {
                         <h3 className='text-lg font-medium'>{car.brand} {car.model}</h3>
                         <p className='text-muted-foreground text-sm'>{car.category} . {car.year}</p>
                     </div>
+                    {/* Star Rating Display */}
+                    <div className='flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded text-xs font-semibold text-amber-700 border border-amber-200'>
+                        <span>★</span>
+                        <span>{car.averageRating ? car.averageRating.toFixed(1) : 'New'}</span>
+                        {car.totalReviews > 0 && <span className='text-gray-400 font-normal'>({car.totalReviews})</span>}
+                    </div>
                 </div>
             </div>
             <div className='mt-4 grid grid-cols-2 gap-y-2 text-gary-600'>

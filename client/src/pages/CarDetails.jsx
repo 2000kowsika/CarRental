@@ -10,12 +10,87 @@ import { motion } from 'motion/react'
 const CarDetails = () => {
 
     const { id } = useParams()
-    const { cars, axios, pickupDate, setPickupDate, returnDate, setReturnDate } = useAppContext()
+    const { cars, axios, pickupDate, setPickupDate, returnDate, setReturnDate, user } = useAppContext()
 
     const navigate = useNavigate()
     const [car, setCar] = useState(null)
     const currency = import.meta.env.VITE_CURRENCY
     const [isLoading, setIsLoading] = useState(false)
+
+    // Reviews State
+    const [reviews, setReviews] = useState([])
+    const [eligibleBookingId, setEligibleBookingId] = useState(null)
+    const [rating, setRating] = useState(5)
+    const [comment, setComment] = useState('')
+    const [submittingReview, setSubmittingReview] = useState(false)
+
+    const fetchReviews = async () => {
+        try {
+            const { data } = await axios.get(`/api/reviews/car/${id}`)
+            if (data.success) {
+                setReviews(data.reviews)
+            }
+        } catch (error) {
+            console.error('Error fetching reviews:', error)
+        }
+    }
+
+    const checkReviewEligibility = async () => {
+        if (!user) return
+        try {
+            const { data } = await axios.get(`/api/reviews/eligible/${id}`)
+            if (data.success && data.hasEligibleBooking) {
+                setEligibleBookingId(data.bookingId)
+            } else {
+                setEligibleBookingId(null)
+            }
+        } catch (error) {
+            console.error('Error checking review eligibility:', error)
+        }
+    }
+
+    const handleReviewSubmit = async (e) => {
+        e.preventDefault()
+        if (!eligibleBookingId) return
+
+        setSubmittingReview(true)
+        try {
+            const { data } = await axios.post('/api/reviews/add', {
+                carId: id,
+                bookingId: eligibleBookingId,
+                rating,
+                comment,
+            })
+            if (data.success) {
+                toast.success(data.message)
+                setComment('')
+                setRating(5)
+                setEligibleBookingId(null)
+                fetchReviews()
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.message || error.message)
+        } finally {
+            setSubmittingReview(false)
+        }
+    }
+
+    const handleDeleteReview = async (reviewId) => {
+        if (!window.confirm('Are you sure you want to delete this review?')) return
+        try {
+            const { data } = await axios.delete(`/api/reviews/delete/${reviewId}`)
+            if (data.success) {
+                toast.success(data.message)
+                fetchReviews()
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            toast.error(error.message)
+        }
+    }
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -40,7 +115,9 @@ const CarDetails = () => {
     useEffect(() => {
         const allCars = cars && cars.length > 0 ? cars : dummyCarData
         setCar(allCars.find(c => c._id === id))
-    }, [cars, id])
+        fetchReviews()
+        checkReviewEligibility()
+    }, [cars, id, user])
 
     return car ? (
         <div className='px-6 md:px-16 lg:px-24 xl:px-32 mt-16'>
@@ -115,6 +192,111 @@ const CarDetails = () => {
                             </ul>
                         </div>
                     </motion.div>
+
+                    {/* Customer Reviews Section */}
+                    <div className='mt-10 border-t border-slate-200 pt-8'>
+                        <div className='flex items-center justify-between mb-6'>
+                            <h2 className='text-xl font-semibold text-slate-800'>
+                                Customer Reviews ({reviews.length})
+                            </h2>
+                            <div className='flex items-center gap-1.5 text-amber-500 font-bold'>
+                                <span>★</span>
+                                <span className='text-slate-800 text-lg'>
+                                    {reviews.length > 0
+                                        ? (reviews.reduce((a, b) => a + b.rating, 0) / reviews.length).toFixed(1)
+                                        : 'No ratings yet'}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Leave a Review Form (If Eligible) */}
+                        {eligibleBookingId && (
+                            <form onSubmit={handleReviewSubmit} className='bg-slate-50 border border-slate-200 rounded-xl p-5 mb-8'>
+                                <h3 className='font-semibold text-slate-800 mb-2'>Leave Your Review</h3>
+                                <p className='text-xs text-slate-500 mb-4'>
+                                    You completed a trip with this car. Share your experience with future renters!
+                                </p>
+
+                                <div className='flex items-center gap-2 mb-3'>
+                                    <span className='text-sm text-slate-700 font-medium'>Rating:</span>
+                                    <div className='flex gap-1'>
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                            <button
+                                                type='button'
+                                                key={star}
+                                                onClick={() => setRating(star)}
+                                                className={`text-2xl cursor-pointer transition-colors ${
+                                                    star <= rating ? 'text-amber-500' : 'text-slate-300'
+                                                }`}
+                                            >
+                                                ★
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <span className='text-xs text-slate-500 ml-2 font-medium'>({rating} of 5 stars)</span>
+                                </div>
+
+                                <textarea
+                                    value={comment}
+                                    onChange={(e) => setComment(e.target.value)}
+                                    placeholder='Write your honest feedback here (cleanliness, performance, comfort)...'
+                                    rows={3}
+                                    required
+                                    className='w-full border border-slate-200 rounded-lg p-3 text-sm outline-primary bg-white'
+                                />
+
+                                <div className='mt-3 flex justify-end'>
+                                    <button
+                                        type='submit'
+                                        disabled={submittingReview}
+                                        className='px-5 py-2 bg-primary hover:bg-primary-dull text-white text-sm font-medium rounded-lg transition-colors cursor-pointer disabled:opacity-50'
+                                    >
+                                        {submittingReview ? 'Submitting...' : 'Post Review'}
+                                    </button>
+                                </div>
+                            </form>
+                        )}
+
+                        {/* Reviews List */}
+                        {reviews.length === 0 ? (
+                            <p className='text-sm text-slate-500 italic py-4'>
+                                No reviews yet. Be the first to rent and share your thoughts!
+                            </p>
+                        ) : (
+                            <div className='space-y-4'>
+                                {reviews.map((rev) => (
+                                    <div key={rev._id} className='p-4 rounded-xl border border-slate-200/80 bg-white'>
+                                        <div className='flex items-center justify-between'>
+                                            <div className='flex items-center gap-3'>
+                                                <div className='w-9 h-9 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm'>
+                                                    {rev.user?.name ? rev.user.name[0].toUpperCase() : 'U'}
+                                                </div>
+                                                <div>
+                                                    <p className='text-sm font-medium text-slate-800'>{rev.user?.name || 'Verified Customer'}</p>
+                                                    <p className='text-xs text-slate-400'>{new Date(rev.createdAt).toLocaleDateString()}</p>
+                                                </div>
+                                            </div>
+                                            <div className='flex items-center gap-2'>
+                                                <div className='text-amber-500 text-sm'>
+                                                    {'★'.repeat(rev.rating)}{'☆'.repeat(5 - rev.rating)}
+                                                </div>
+                                                {user && (user._id === rev.user?._id || user.role === 'admin') && (
+                                                    <button
+                                                        onClick={() => handleDeleteReview(rev._id)}
+                                                        className='text-xs text-red-500 hover:text-red-700 ml-2'
+                                                        title='Delete review'
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <p className='text-sm text-slate-600 mt-3 leading-relaxed'>{rev.comment}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
 
                 </motion.div>
 

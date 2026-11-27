@@ -1,6 +1,11 @@
 import Booking from "../models/Booking.js"
 import Car from "../models/Car.js";
 import User from "../models/User.js";
+import {
+    sendBookingReceivedEmail,
+    sendBookingConfirmedEmail,
+    sendBookingCancelledEmail,
+} from "../configs/email.js";
 
 // Function to Check Availability of Car for given Date
 const checkAvailability = async (car, pickupDate, returnDate) => {
@@ -63,7 +68,12 @@ export const createBooking = async (req, res) => {
         const noOfDays = Math.ceil((returned - picked) / (1000 * 60 * 60 * 24))
         const price = carData.pricePerDay * noOfDays;
 
-        await Booking.create({ car, owner: carData.owner, user: _id, pickupDate, returnDate, price })
+        const newBooking = await Booking.create({ car, owner: carData.owner, user: _id, pickupDate, returnDate, price })
+
+        // Send Booking Received confirmation email asynchronously
+        sendBookingReceivedEmail(req.user, newBooking, carData).catch((err) =>
+            console.error("Booking received email error:", err.message)
+        );
 
         res.json({ success: true, message: "Booking Created" })
 
@@ -109,11 +119,26 @@ export const changeBookingStatus = async (req, res) => {
         const { bookingId, status } = req.body
         const booking = await Booking.findById(bookingId)
 
+        if (!booking) {
+            return res.json({ success: false, message: "Booking not found" })
+        }
+
         if (booking.owner.toString() !== _id.toString()) {
-            return res.json({ success: false, message: "Unautorized" })
+            return res.json({ success: false, message: "Unauthorized" })
         }
         booking.status = status;
         await booking.save();
+
+        // If owner confirmed the booking, notify the customer via email
+        if (status === "confirmed") {
+            const customer = await User.findById(booking.user);
+            const car = await Car.findById(booking.car);
+            if (customer && car) {
+                sendBookingConfirmedEmail(customer, booking, car).catch((err) =>
+                    console.error("Booking confirmed email error:", err.message)
+                );
+            }
+        }
 
         res.json({ success: true, message: "Status Updated" })
     } catch (error) {
@@ -121,3 +146,67 @@ export const changeBookingStatus = async (req, res) => {
         res.json({ success: false, message: error.message })
     }
 }
+
+// API for customer to cancel their own booking
+export const cancelBooking = async (req, res) => {
+    try {
+        const { _id } = req.user;
+        const { bookingId, reason } = req.body;
+
+        const booking = await Booking.findById(bookingId).populate("car");
+
+        if (!booking) {
+            return res.json({ success: false, message: "Booking not found" });
+        }
+
+        // Authorization check: only the customer who made the booking can cancel it
+        if (booking.user.toString() !== _id.toString()) {
+            return res.json({ success: false, message: "Unauthorized to cancel this booking" });
+        }
+
+        // Check if already cancelled
+        if (booking.status === "cancelled") {
+            return res.json({ success: false, message: "This booking is already cancelled" });
+        }
+
+        // Cancellation policy: Cannot cancel if the rental start time has already passed
+        const now = new Date();
+        const pickup = new Date(booking.pickupDate);
+        if (now >= pickup) {
+            return res.json({
+                success: false,
+                message: "Cannot cancel a booking that has already started or passed its pick-up date"
+            });
+        }
+
+        // Update booking status
+        booking.status = "cancelled";
+        booking.cancelledAt = new Date();
+        booking.cancellationReason = reason || "Cancelled by customer";
+
+        // Payment status note: If the booking was already paid online,
+        // flag it as 'refund_pending' so it is not marked as completed until
+        // confirmed/processed by the payment gateway or administrator.
+        if (booking.paymentStatus === "paid") {
+            booking.paymentStatus = "refund_pending";
+        }
+
+        await booking.save();
+
+        // Dispatch cancellation email to customer asynchronously
+        sendBookingCancelledEmail(req.user, booking, booking.car).catch((err) =>
+            console.error("Booking cancellation email error:", err.message)
+        );
+
+        res.json({
+            success: true,
+            message: booking.paymentStatus === "refund_pending"
+                ? "Booking cancelled successfully. Refund has been initiated and is pending processing."
+                : "Booking cancelled successfully. Car availability has been restored for these dates.",
+            booking
+        });
+    } catch (error) {
+        console.log(error.message);
+        res.json({ success: false, message: error.message });
+    }
+};
