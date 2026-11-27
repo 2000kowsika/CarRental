@@ -37,7 +37,8 @@ export const generateBookingInvoice = (booking, user, currency = "$") => {
     doc.setTextColor(219, 234, 254);
     const invoiceDate = new Date().toISOString().split("T")[0];
     doc.text(`Invoice Date: ${invoiceDate}`, pageWidth - margin, 27, { align: "right" });
-    doc.text(`Booking Ref: #${booking._id?.slice(-8).toUpperCase()}`, pageWidth - margin, 32, { align: "right" });
+    const refId = booking.bookingId || `#${booking._id?.slice(-8).toUpperCase()}`;
+    doc.text(`Booking ID: ${refId}`, pageWidth - margin, 32, { align: "right" });
 
     // 2. Customer & Booking Details Section
     let currentY = 50;
@@ -55,14 +56,17 @@ export const generateBookingInvoice = (booking, user, currency = "$") => {
     doc.setTextColor(15, 23, 42);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
-    doc.text(user?.name || "Valued Customer", margin + 5, currentY + 15);
+    const customerDisplayName = booking.customerName || user?.name || "Valued Customer";
+    doc.text(customerDisplayName, margin + 5, currentY + 15);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.setTextColor(71, 85, 105);
-    doc.text(`Email: ${user?.email || "N/A"}`, margin + 5, currentY + 22);
-    doc.text(`Customer ID: ${user?._id?.slice(-8) || "GUEST"}`, margin + 5, currentY + 28);
-    doc.text(`Location: ${booking.car?.location || "Sri Lanka"}`, margin + 5, currentY + 34);
+    const customerDisplayEmail = booking.customerEmail || user?.email || "N/A";
+    const customerDisplayPhone = booking.customerPhone || user?.phone || "N/A";
+    doc.text(`Email: ${customerDisplayEmail}`, margin + 5, currentY + 22);
+    doc.text(`Phone: ${customerDisplayPhone}`, margin + 5, currentY + 28);
+    doc.text(`Location: ${booking.pickupLocation || booking.car?.location || "Sri Lanka"}`, margin + 5, currentY + 34);
 
     // Booking Summary Box
     const rightBoxX = margin + (pageWidth - margin * 2) / 2 + 4;

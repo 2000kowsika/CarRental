@@ -6,18 +6,18 @@ import {
     deleteReview,
     getEligibleBookingForReview,
 } from "../controllers/reviewController.js";
-import { protect } from "../middleware/auth.js";
+import { protect, optionalAuth } from "../middleware/auth.js";
 
 const reviewRouter = express.Router();
 
 // Public: Fetch all reviews for a car
 reviewRouter.get("/car/:carId", getCarReviews);
 
-// Protected: Check eligibility to write a review
-reviewRouter.get("/eligible/:carId", protect, getEligibleBookingForReview);
+// Check eligibility to write a review (authenticated or guest)
+reviewRouter.get("/eligible/:carId", optionalAuth, getEligibleBookingForReview);
 
-// Protected: Submit, update, and delete reviews
-reviewRouter.post("/add", protect, addReview);
+// Submit review (supports logged in users or guests with completed booking)
+reviewRouter.post("/add", optionalAuth, addReview);
 reviewRouter.put("/update", protect, updateReview);
 reviewRouter.delete("/delete/:reviewId", protect, deleteReview);
 

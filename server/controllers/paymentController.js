@@ -30,16 +30,20 @@ export const generatePayHereHash = (orderId, amount, currency) => {
 // 1. Initiate PayHere Payment for a Booking
 export const initiatePayment = async (req, res) => {
     try {
-        const { bookingId } = req.body;
-        const { _id, name, email } = req.user;
+        const { bookingId, customerEmail } = req.body;
+        const user = req.user;
 
         const booking = await Booking.findById(bookingId).populate("car");
         if (!booking) {
             return res.json({ success: false, message: "Booking not found" });
         }
 
-        // Verify booking owner
-        if (booking.user.toString() !== _id.toString()) {
+        // Verify booking authorization: logged in user, or customer email matches
+        const userMatches = user && booking.user && booking.user.toString() === user._id.toString();
+        const emailMatches = (user && user.email?.toLowerCase() === booking.customerEmail?.toLowerCase()) ||
+            (customerEmail && customerEmail.toLowerCase() === booking.customerEmail?.toLowerCase());
+
+        if (!userMatches && !emailMatches && user?.role !== "admin") {
             return res.json({ success: false, message: "Unauthorized for this booking" });
         }
 
@@ -64,9 +68,11 @@ export const initiatePayment = async (req, res) => {
         const amount = Number(booking.price).toFixed(2);
         const hash = generatePayHereHash(orderId, amount, currency);
 
-        const nameParts = (name || "Customer").split(" ");
+        const fullName = booking.customerName || user?.name || "Customer";
+        const nameParts = fullName.split(" ");
         const firstName = nameParts[0] || "Customer";
         const lastName = nameParts.slice(1).join(" ") || "User";
+        const emailToUse = booking.customerEmail || user?.email || "customer@example.com";
 
         const paymentData = {
             sandbox: process.env.PAYHERE_MODE !== "live",
@@ -75,15 +81,15 @@ export const initiatePayment = async (req, res) => {
             cancel_url: `${process.env.CLIENT_URL || "http://localhost:5173"}/my-bookings?payment=cancelled&bookingId=${orderId}`,
             notify_url: `${process.env.BACKEND_URL || "http://localhost:3000"}/api/payment/notify`,
             order_id: orderId,
-            items: `Car Rental - ${booking.car?.brand} ${booking.car?.model}`,
+            items: `Car Rental - ${booking.car?.brand} ${booking.car?.model} (ID: ${booking.bookingId})`,
             amount: amount,
             currency: currency,
             first_name: firstName,
             last_name: lastName,
-            email: email,
-            phone: req.user.phone || "0771234567",
-            address: req.user.address || "Sri Lanka",
-            city: booking.car?.location || "Colombo",
+            email: emailToUse,
+            phone: booking.customerPhone || user?.phone || "0771234567",
+            address: user?.address || "Sri Lanka",
+            city: booking.pickupLocation || booking.car?.location || "Colombo",
             country: "Sri Lanka",
             hash: hash,
         };

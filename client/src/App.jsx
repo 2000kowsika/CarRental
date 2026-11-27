@@ -12,7 +12,6 @@ import AddCar from './pages/owner/AddCar'
 import ManageCars from './pages/owner/ManageCars'
 import ManageBookings from './pages/owner/ManageBookings'
 import AdminKYCManager from './pages/owner/AdminKYCManager'
-import DriverLicenseKYC from './pages/DriverLicenseKYC'
 import Analytics from './pages/owner/Analytics'
 import Login from './components/Login'
 import ResetPassword from './pages/ResetPassword'
@@ -36,7 +35,6 @@ const App = () => {
         <Route path='/car-details/:id' element={<CarDetails />} />
         <Route path='/cars' element={<Cars />} />
         <Route path='/my-bookings' element={<MyBookings />} />
-        <Route path='/driver-license' element={<DriverLicenseKYC />} />
         <Route path='/reset-password/:token' element={<ResetPassword />} />
         <Route path='/owner' element={<Layout />}>
           <Route index element={<Dashboard />} />

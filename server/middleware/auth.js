@@ -20,3 +20,19 @@ export const protect = async (req, res, next) => {
 
     }
 }
+
+export const optionalAuth = async (req, res, next) => {
+    const token = req.headers.authorization;
+    if (!token) {
+        return next();
+    }
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        if (decoded) {
+            req.user = await User.findById(decoded.id).select("-password");
+        }
+    } catch (error) {
+        // Continue as guest if token is invalid/expired
+    }
+    next();
+};

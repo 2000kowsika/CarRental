@@ -18,8 +18,8 @@ const updateCarRatingStats = async (carId) => {
 // 1. Submit a Review
 export const addReview = async (req, res) => {
     try {
-        const { _id } = req.user;
-        const { carId, bookingId, rating, comment } = req.body;
+        const userId = req.user ? req.user._id : null;
+        const { carId, bookingId, rating, comment, customerEmail } = req.body;
 
         if (!carId || !bookingId || !rating || !comment) {
             return res.json({ success: false, message: "Please provide all review fields" });
@@ -36,9 +36,13 @@ export const addReview = async (req, res) => {
             return res.json({ success: false, message: "Booking record not found" });
         }
 
-        // Must belong to logged-in user
-        if (booking.user.toString() !== _id.toString()) {
-            return res.json({ success: false, message: "Unauthorized: This is not your booking" });
+        // Verify user authorization: match authenticated user, or match customer email
+        const userMatches = userId && booking.user && booking.user.toString() === userId.toString();
+        const emailMatches = (req.user && req.user.email?.toLowerCase() === booking.customerEmail?.toLowerCase()) ||
+            (customerEmail && customerEmail.toLowerCase() === booking.customerEmail?.toLowerCase());
+
+        if (!userMatches && !emailMatches) {
+            return res.json({ success: false, message: "Unauthorized: This booking does not match your credentials" });
         }
 
         // Must correspond to the car being reviewed
@@ -46,15 +50,16 @@ export const addReview = async (req, res) => {
             return res.json({ success: false, message: "Booking does not match this car" });
         }
 
-        // Check if booking is completed (or confirmed and past return date)
+        // Check if booking is completed (rental return date in past, and not cancelled)
         const now = new Date();
         const returnDate = new Date(booking.returnDate);
-        const isCompleted = booking.status === "confirmed" && now >= returnDate;
-
-        if (!isCompleted && booking.status !== "confirmed") {
+        if (booking.status === "cancelled") {
+            return res.json({ success: false, message: "Cannot review a cancelled booking" });
+        }
+        if (now < returnDate) {
             return res.json({
                 success: false,
-                message: "Only customers with completed bookings can review this vehicle",
+                message: "You can submit a review only after completing your rental return date.",
             });
         }
 
@@ -63,16 +68,18 @@ export const addReview = async (req, res) => {
         if (existingReview) {
             return res.json({
                 success: false,
-                message: "You have already submitted a review for this booking",
+                message: "You have already submitted a review for this completed booking",
             });
         }
 
         const newReview = await Review.create({
             car: carId,
-            user: _id,
+            user: userId || booking.user,
+            customerName: booking.customerName || (req.user ? req.user.name : "Verified Customer"),
             booking: bookingId,
             rating: numRating,
             comment: comment.trim(),
+            isApproved: true,
         });
 
         await updateCarRatingStats(carId);
@@ -94,7 +101,7 @@ export const addReview = async (req, res) => {
 export const getCarReviews = async (req, res) => {
     try {
         const { carId } = req.params;
-        const reviews = await Review.find({ car: carId })
+        const reviews = await Review.find({ car: carId, isApproved: { $ne: false } })
             .populate("user", "name image")
             .sort({ createdAt: -1 });
 
